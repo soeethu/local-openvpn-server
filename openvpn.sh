@@ -157,15 +157,14 @@ verb 3
 crl-verify crl.pem" >> /etc/openvpn/server.conf
 
 # Enable net.ipv4.ip_forward for the system
-# Do not Enable
-sed -i '/\<net.ipv4.ip_forward\>/c\net.ipv4.ip_forward=0' /etc/sysctl.conf
+sed -i '/\<net.ipv4.ip_forward\>/c\net.ipv4.ip_forward=1' /etc/sysctl.conf
 if ! grep -q "\<net.ipv4.ip_forward\>" /etc/sysctl.conf; then
 	echo 'net.ipv4.ip_forward=0' >> /etc/sysctl.conf
 fi
 
 # Avoid an unneeded reboot
-# do not enable forward
-echo 0 > /proc/sys/net/ipv4/ip_forward
+# Allow to ping client to client
+echo 1 > /proc/sys/net/ipv4/ip_forward
 if pgrep firewalld; then
 	# Using both permanent and not permanent rules to avoid a firewalld
 	# reload.
@@ -260,8 +259,8 @@ mkdir /etc/openvpn/clients/
 # mkdir /etc/openvpn/clients/
 
 #Set permissions for easy-rsa and open vpn to be modified by the web user.
-chown -R www-data:www-data /etc/openvpn/easy-rsa
-chown -R www-data:www-data /etc/openvpn/clients/
+chown -R lighttpd:lighttpd /etc/openvpn/easy-rsa
+chown -R lighttpd:lighttpd /etc/openvpn/clients/
 chmod -R 755 /etc/openvpn/
 chmod -R 777 /etc/openvpn/crl.pem
 chmod g+s /etc/openvpn/clients/

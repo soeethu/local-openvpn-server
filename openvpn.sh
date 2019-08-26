@@ -2,10 +2,10 @@
 
 # defaults 
 ADMINPASSWORD="secret"
-DNS1="8.8.8.8"
-DNS2="8.8.4.4"
-PROTOCOL=udp
-PORT=1194
+DNS1="1.1.1.1"
+DNS2="8.8.8.8"
+PROTOCOL=tcp
+PORT=443
 HOST=$(wget -4qO- "http://whatismyip.akamai.com/")
 
 
@@ -133,15 +133,20 @@ key server.key
 dh dh.pem
 tls-auth ta.key 0
 topology subnet
-server 10.8.0.0 255.255.255.0
+server 10.20.30.0 255.255.255.0
 ifconfig-pool-persist ipp.txt" > /etc/openvpn/server.conf
-echo 'push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
+# For Public
+echo ';push "redirect-gateway def1 bypass-dhcp"' >> /etc/openvpn/server.conf
 
 # DNS
 echo "push \"dhcp-option DNS $DNS1\"" >> /etc/openvpn/server.conf
 echo "push \"dhcp-option DNS $DNS2\"" >> /etc/openvpn/server.conf
 echo "keepalive 10 120
-cipher AES-256-CBC
+# Fast Method
+cipher BF-CBC
+
+# Secure Method
+;cipher AES-256-CBC
 
 user nobody
 group $GROUPNAME
@@ -152,25 +157,27 @@ verb 3
 crl-verify crl.pem" >> /etc/openvpn/server.conf
 
 # Enable net.ipv4.ip_forward for the system
-sed -i '/\<net.ipv4.ip_forward\>/c\net.ipv4.ip_forward=1' /etc/sysctl.conf
+# Do not Enable
+sed -i '/\<net.ipv4.ip_forward\>/c\net.ipv4.ip_forward=0' /etc/sysctl.conf
 if ! grep -q "\<net.ipv4.ip_forward\>" /etc/sysctl.conf; then
-	echo 'net.ipv4.ip_forward=1' >> /etc/sysctl.conf
+	echo 'net.ipv4.ip_forward=0' >> /etc/sysctl.conf
 fi
 
 # Avoid an unneeded reboot
-echo 1 > /proc/sys/net/ipv4/ip_forward
+# do not enable forward
+echo 0 > /proc/sys/net/ipv4/ip_forward
 if pgrep firewalld; then
 	# Using both permanent and not permanent rules to avoid a firewalld
 	# reload.
 	# We don't use --add-service=openvpn because that would only work with
 	# the default port and protocol.
 	firewall-cmd --zone=public --add-port=$PORT/$PROTOCOL
-	firewall-cmd --zone=trusted --add-source=10.8.0.0/24
+	firewall-cmd --zone=trusted --add-source=10.20.30.0/24
 	firewall-cmd --permanent --zone=public --add-port=$PORT/$PROTOCOL
-	firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/24
+	firewall-cmd --permanent --zone=trusted --add-source=10.20.30.0/24
 	# Set NAT for the VPN subnet
-	firewall-cmd --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/24 -j SNAT --to $IP
-	firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.8.0.0/24 -j SNAT --to $IP
+	firewall-cmd --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.20.30.0/24 -j SNAT --to $IP
+	firewall-cmd --permanent --direct --add-rule ipv4 nat POSTROUTING 0 -s 10.20.30.0/24 -j SNAT --to $IP
 else
 	# Needed to use rc.local with some systemd distros
 	if [[ "$OS" = 'debian' && ! -e $RCLOCAL ]]; then
@@ -179,17 +186,17 @@ exit 0' > $RCLOCAL
 	fi
 	chmod +x $RCLOCAL
 	# Set NAT for the VPN subnet
-	iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP
-	sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.8.0.0/24 -j SNAT --to $IP" $RCLOCAL
+	iptables -t nat -A POSTROUTING -s 10.20.30.0/24 -j SNAT --to $IP
+	sed -i "1 a\iptables -t nat -A POSTROUTING -s 10.20.30.0/24 -j SNAT --to $IP" $RCLOCAL
 	if iptables -L -n | grep -qE '^(REJECT|DROP)'; then
 		# If iptables has at least one REJECT rule, we asume this is needed.
 		# Not the best approach but I can't think of other and this shouldn't
 		# cause problems.
 		iptables -I INPUT -p $PROTOCOL --dport $PORT -j ACCEPT
-		iptables -I FORWARD -s 10.8.0.0/24 -j ACCEPT
+		iptables -I FORWARD -s 10.20.30.0/24 -j ACCEPT
 		iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT
 		sed -i "1 a\iptables -I INPUT -p $PROTOCOL --dport $PORT -j ACCEPT" $RCLOCAL
-		sed -i "1 a\iptables -I FORWARD -s 10.8.0.0/24 -j ACCEPT" $RCLOCAL
+		sed -i "1 a\iptables -I FORWARD -s 10.20.30.0/24 -j ACCEPT" $RCLOCAL
 		sed -i "1 a\iptables -I FORWARD -m state --state RELATED,ESTABLISHED -j ACCEPT" $RCLOCAL
 	fi
 fi
@@ -239,8 +246,9 @@ nobind
 persist-key
 persist-tun
 remote-cert-tls server
-cipher AES-256-CBC
-setenv opt block-outside-dns
+;cipher AES-256-CBC
+cipher BF-CBC
+;setenv opt block-outside-dns
 key-direction 1
 verb 3" > /etc/openvpn/client-common.txt
 

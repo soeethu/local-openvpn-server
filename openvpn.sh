@@ -276,13 +276,16 @@ chmod 744 /etc/lighttpd/ssl/server.pem
 #Configure the web server with the lighttpd.conf from GitHub
 mv /etc/lighttpd/lighttpd.conf /etc/lighttpd/lighttpd.conf.$$
 wget -O /etc/lighttpd/lighttpd.conf https://raw.githubusercontent.com/soeethu/local-openvpn-server/master/lighttpd.conf
+mkdir -p /var/cache/lighttpd
+mkdir -p /var/cache/lighttpd/compress
+chown -R lighttpd:lighttpd /var/cache/lighttpd/
+chown -R lighttpd:lighttpd /var/cache/lighttpd/compress/
 
 #install the webserver scripts
 mkdir /var/www/html/
 chown -R lighttpd:lighttpd /var/www/html/
 rm /var/www/html/*
 wget -O /var/www/html/index.sh https://raw.githubusercontent.com/soeethu/local-openvpn-server/master/index.sh
-
 wget -O /var/www/html/download.sh https://raw.githubusercontent.com/soeethu/local-openvpn-server/master/download.sh
 
 #set the password file for the WWW logon

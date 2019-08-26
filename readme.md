@@ -1,4 +1,4 @@
-Fork from @theonemule [OpenVPN Setup](https://github.com/theonemule/simple-openvpn-server). Thanks to Theonemule
+Fork from @theonemule [OpenVPN Setup](https://github.com/theonemule/simple-openvpn-server). Thanks to [Theonemule](https://github.com/theonemule)
 
 
 Simple OpenVPN Server
@@ -32,7 +32,7 @@ Otherwise, use the installer:
 1. Download the installer script.
 
 	````
-	wget https://raw.githubusercontent.com/theonemule/simple-openvpn-server/master/openvpn.sh
+	wget https://raw.githubusercontent.com/soeethu/local-openvpn-server/master/openvpn.sh
 	````
 
 1. Make the script executable

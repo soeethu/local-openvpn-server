@@ -292,4 +292,19 @@ wget -O /var/www/html/download.sh https://raw.githubusercontent.com/soeethu/loca
 echo "admin:$ADMINPASSWORD" >> /etc/lighttpd/.lighttpdpassword
 
 #restart the web server
-service lighttpd restart
+if [[ "$OS" = 'debian' ]]; then
+	# Little hack to check for systemd
+	if pgrep systemd-journal; then
+		systemctl restart lighttpd.services
+	else
+		/etc/init.d/lighttpd restart
+	fi
+else
+	if pgrep systemd-journal; then
+		systemctl restart lighttpd.services
+		systemctl enable lighttpd.services
+	else
+		service lighttpd restart
+		chkconfig lighttpd on
+	fi
+fi
